@@ -76,12 +76,12 @@ int main()
 
 	cout << "good: " << good << endl;
 
-	start(chromos, chromosPool);
+	start(chromos, chromosBuffer);
 
 	for (int i = 0; i < N; i++)
 	{
 		delete chromos[i];
-		delete chromosPool[i];
+		delete chromosBuffer[i];
 	}
 
 	system("pause");
@@ -222,7 +222,7 @@ int eval(int* chromos)
 
 struct sort_pred {
 	bool operator()(const pair<int*, int> &left, const pair<int*, int> &right) {
-		return left.second < right.second;
+		return left.second > right.second;
 	}
 };
 
@@ -231,13 +231,18 @@ void start(int** chromos, int** chromosBuffer)
 	int order[N];
 	vector<pair<int*, int>> vec;
 
+	int generation = 1;
+
 	while (1)
 	{
-		myrand.uniformArray(order, N, 0, N);
+		myrand.uniformArray(order, N, 0, N-1);
+		cout << "start crossover" << endl;
 		for (int i = 0; i < N; i += 2)
 		{
 			partiallyMappedXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
+
+		cout << "crossover end" << endl;
 
 		for (int i = 0; i < N; ++i)
 		{
@@ -247,6 +252,26 @@ void start(int** chromos, int** chromosBuffer)
 
 		sort(vec.begin(), vec.end(), sort_pred());
 
+		int sum = 0;
+		int count = 0;
+
+		for (int i = 0; i < N; ++i)
+		{
+			if (vec[i].second > -500)
+			{
+				sum += vec[i].second;
+				count++;
+			}
+			chromos[i] = vec[i].first;
+			chromosBuffer[i] = vec[i + N].first;
+		}
+
+		cout << "Generation: " << generation << endl;
+		cout << "the mean fitness of this generation is: " << float(float(sum) / float(count)) << endl;
+		cout << "valid chromosome in this generation is: " << count << endl;
+		cout << "the best fitness value of this generation is: " << vec[0].second << endl;
+
+		generation++;
 	}
 }
 
@@ -262,6 +287,11 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 	{
 		ah[a[i]] = i;
 		bh[b[i]] = i;
+	}
+
+	if (ah.size() != bh.size() || ah.size() != nMatch)
+	{
+		cout << "something wrong" << endl;
 	}
 
 	memset(c, -1, sizeof(int) * nMatch);
@@ -283,10 +313,10 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 	for (int i = head; i <= tail; ++i)
 	{
 		c[i] = a[i];
-		if (bh[a[i]] < head || bh[a[i]] > tail)
+		if (bh.find(a[i]) != bh.end() && (bh[a[i]] < head || bh[a[i]] > tail))
 		{
 			int s = b[i];
-			while (ah[s] >= head && ah[s] <= tail)
+			while (ah.find(s) != ah.end() && ah[s] >= head && ah[s] <= tail)
 			{
 				s = b[ah[s]];
 			}
@@ -294,10 +324,10 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		}
 
 		d[i] = b[i];
-		if (ah[b[i]] < head || ah[b[i]] > tail)
+		if (ah.find(b[i]) != ah.end() && (ah[b[i]] < head || ah[b[i]] > tail))
 		{
 			int s = a[i];
-			while (bh[s] >= head && bh[s] <= tail)
+			while (bh.find(s) != bh.end() && bh[s] >= head && bh[s] <= tail)
 			{
 				s = a[bh[s]];
 			}
