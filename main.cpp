@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include "myrand.h"
 
 #define N 10000 // population size
@@ -20,6 +21,9 @@ void getIndexFromMatchId(int*, int*, int);
 void exitWithError(int);
 int evaluate(int*);
 int eval(int*);
+void start(int**, int**);
+void orderXO(int* a, int* b, int* c, int* d);
+void partiallyMappedXO(int *a, int *b, int *c, int *d);
 
 MyRand myrand;
 
@@ -43,9 +47,8 @@ int preferenceArray[10][10] =
 };
 int main()
 {
-
-	int *chromosomes[N];
 	int *chromos[N];
+	int *chromosBuffer[N];
 
 	int mid = 0;
 	for (int i = 0; i < nTeam; ++i)
@@ -60,43 +63,25 @@ int main()
 
 	for (int i = 0; i < N; i++)
 	{
-		chromosomes[i] = new int[l];
 		chromos[i] = new int[nMatch];
-		myrand.uniformArray(chromosomes[i], l, 0, l-1);
-		for (int j = 0; j < l; ++j)
-		{
-			if (chromosomes[i][j] < nMatch)
-			{
-				chromos[i][chromosomes[i][j]] = j;
-			}
-		}
+		chromosBuffer[i] = new int[nMatch];
+		myrand.uniformArray(chromos[i], nMatch, 0, l-1);
 	}
 
-	int temp[20] = {
-		0, 45, 45, 45,
-		1, 45, 45, 45,
-		2, 45, 45, 45,
-		45, 45, 45, 45,
-		45, 45, 45, 45,
-	};
-
-	int oldGood = 0, good = 0;
+	int good = 0;
 	for (int i = 0; i < N; ++i)
 	{
-		if (evaluate(chromosomes[i]) != INT_MIN)
-		{
-			oldGood++;
-		}
 		if (eval(chromos[i]) > -900) good++;
 	}
 
-	cout << "oldGood: " << oldGood << " " << "good: " << good << endl;;
+	cout << "good: " << good << endl;
 
+	start(chromos, chromosPool);
 
 	for (int i = 0; i < N; i++)
 	{
-		delete chromosomes[i];
 		delete chromos[i];
+		delete chromosPool[i];
 	}
 
 	system("pause");
@@ -232,5 +217,105 @@ int eval(int* chromos)
 	}
 
 	return f;
+
+}
+
+struct sort_pred {
+	bool operator()(const pair<int*, int> &left, const pair<int*, int> &right) {
+		return left.second < right.second;
+	}
+};
+
+void start(int** chromos, int** chromosBuffer)
+{
+	int order[N];
+	vector<pair<int*, int>> vec;
+
+	while (1)
+	{
+		myrand.uniformArray(order, N, 0, N);
+		for (int i = 0; i < N; i += 2)
+		{
+			partiallyMappedXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
+		}
+
+		for (int i = 0; i < N; ++i)
+		{
+			vec.push_back(pair<int*, int>(chromos[i], eval(chromos[i])));
+			vec.push_back(pair<int*, int>(chromosBuffer[i], eval(chromosBuffer[i])));
+		}
+
+		sort(vec.begin(), vec.end(), sort_pred());
+
+	}
+}
+
+void orderXO(int* a, int* b, int* c, int* d)
+{
+
+}
+
+void partiallyMappedXO(int *a, int *b, int *c, int *d)
+{
+	unordered_map<int, int> ah, bh;
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[a[i]] = i;
+		bh[b[i]] = i;
+	}
+
+	memset(c, -1, sizeof(int) * nMatch);
+	memset(d, -1, sizeof(int) * nMatch);
+
+	// generate the random segment
+	int head, tail;
+	head = myrand.uniformInt(0, nMatch);
+	tail = myrand.uniformInt(0, nMatch);
+
+	// make sure that head > tail
+	if (head > tail)
+	{
+		head = head ^ tail;
+		tail = head ^ tail;
+		head = head ^ tail;
+	}
+
+	for (int i = head; i <= tail; ++i)
+	{
+		c[i] = a[i];
+		if (bh[a[i]] < head || bh[a[i]] > tail)
+		{
+			int s = b[i];
+			while (ah[s] >= head && ah[s] <= tail)
+			{
+				s = b[ah[s]];
+			}
+			c[bh[a[i]]] = s;
+		}
+
+		d[i] = b[i];
+		if (ah[b[i]] < head || ah[b[i]] > tail)
+		{
+			int s = a[i];
+			while (bh[s] >= head && bh[s] <= tail)
+			{
+				s = a[bh[s]];
+			}
+			d[ah[b[i]]] = s;
+		}
+	}
+
+	for (int i = 0; i < nMatch; ++i)
+	{
+		if (c[i] == -1)
+		{
+			c[i] = b[i];
+		}
+
+		if (d[i] == -1)
+		{
+			d[i] = a[i];
+		}
+	}
 
 }
