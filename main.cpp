@@ -271,6 +271,7 @@ void start(int** chromos, int** chromosBuffer)
 		cout << "valid chromosome in this generation is: " << count << endl;
 		cout << "the best fitness value of this generation is: " << vec[0].second << endl;
 
+		vec.clear();
 		generation++;
 	}
 }
@@ -282,6 +283,11 @@ void orderXO(int* a, int* b, int* c, int* d)
 
 void partiallyMappedXO(int *a, int *b, int *c, int *d)
 {
+	if (a == b || a == c || a == d || b == c || b == d || c == d)
+	{
+		cout << "duplicated chromosome pointer" << endl;
+	}
+
 	unordered_map<int, int> ah, bh;
 	for (int i = 0; i < nMatch; ++i)
 	{
@@ -289,13 +295,8 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		bh[b[i]] = i;
 	}
 
-	if (ah.size() != bh.size() || ah.size() != nMatch)
-	{
-		cout << "something wrong" << endl;
-	}
-
-	memset(c, -1, sizeof(int) * nMatch);
-	memset(d, -1, sizeof(int) * nMatch);
+	memset(c, -1, sizeof(int)* nMatch);
+	memset(d, -1, sizeof(int)* nMatch);
 
 	// generate the random segment
 	int head, tail;
@@ -346,6 +347,39 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		{
 			d[i] = a[i];
 		}
+	}
+
+	ah.clear();
+	bh.clear();
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[c[i]] = i;
+		bh[d[i]] = i;
+	}
+
+	if (ah.size() != bh.size() || ah.size() != 15)
+	{
+		cout << "head: " << head << " tail: " << tail << endl;
+		for (int i = 0; i < nMatch; ++i)
+		{
+			cout << a[i] << " ";
+		}
+		cout << endl;
+		for (int i = 0; i < nMatch; ++i)
+		{
+			cout << b[i] << " ";
+		}
+		cout << endl;
+		for (int i = 0; i < nMatch; ++i)
+		{
+			cout << c[i] << " ";
+		}
+		cout << endl;
+		for (int i = 0; i < nMatch; ++i)
+		{
+			cout << d[i] << " ";
+		}
+		cout << endl;
 	}
 
 }
