@@ -12,7 +12,7 @@
 
 #define N 10000 // population size
 #define nWeek 4 // number of week
-#define nTeam 10 // number of team
+#define nTeam 5 // number of team
 #define nField 2 // number of field
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
@@ -25,6 +25,7 @@ int eval(int*);
 void start(int**, int**);
 void orderXO(int* a, int* b, int* c, int* d);
 void partiallyMappedXO(int *a, int *b, int *c, int *d);
+void baselineRandom(int generation);
 
 MyRand myrand;
 
@@ -85,7 +86,8 @@ int main()
 		delete chromosBuffer[i];
 	}
 
-	system("pause");
+	cout << "Press Enter to end";
+	getc(stdin);
 	return 0;
 }
 
@@ -115,7 +117,8 @@ void getIndexFromMatchId(int* a, int* b, int matchId)
 
 void exitWithError(int ret) 
 {
-	system("pause");
+	cout << "Press Enter to exit";
+	getc(stdin);
 	exit(ret);
 }
 
@@ -269,18 +272,26 @@ void start(int** chromos, int** chromosBuffer)
 		}
 
 		cout << "Generation: " << generation << endl;
-		cout << "the mean fitness of this generation is: " << float(float(sum) / float(count)) << endl;
+		cout << "the average fitness of this generation is: " << float(float(sum) / float(count)) << endl;
 		cout << "valid chromosome in this generation is: " << count << endl;
 		cout << "the best fitness value of this generation is: " << vec[0].second << endl;
 
-		vec.clear();
 		generation++;
-		if (generation % 100 == 0)
+
+		if ((float(vec[0].second) - float(float(sum) / float(count))) < 0.0001)
 		{
-			cout << "Press Enter to continue";
-			getc(stdin);
+			cout << "Converged at generation:" << generation << endl;
+			break;
 		}
+
+		vec.clear();
+		//if (generation % 100 == 0)
+		//{
+		//	cout << "Press Enter to continue";
+		//	getc(stdin);
+		//}
 	}
+	baselineRandom(generation);
 }
 
 void orderXO(int* a, int* b, int* c, int* d)
@@ -391,4 +402,28 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		getc(stdin);
 	}
 
+}
+
+void baselineRandom(int generation)
+{
+	int *chromos, *best;
+	chromos = new int[nMatch];
+	best = new int[nMatch];
+	int bestFitness = INT_MIN, f;
+	for (int i = 0; i < generation * N; ++i)
+	{
+		if (i % N == 0)
+		{
+			cout << "Generation " << i / N << " Best Fitness: " << bestFitness << endl;
+		}
+		myrand.uniformArray(chromos, nMatch, 0, l-1);
+		f = eval(chromos);
+		if (f > bestFitness)
+		{
+			memcpy(best, chromos, sizeof(int)* nMatch);
+			bestFitness = f;
+		}
+	}
+
+	cout << "Best fitness using pure random baseline: " << bestFitness << endl;
 }
