@@ -5,6 +5,7 @@
 #include <climits>
 #include <iostream>
 #include <vector>
+#include <cstring>
 #include <unordered_set>
 #include <unordered_map>
 #include "myrand.h"
@@ -239,10 +240,11 @@ void start(int** chromos, int** chromosBuffer)
 		cout << "start crossover" << endl;
 		for (int i = 0; i < N; i += 2)
 		{
+			if (i % 200 == 0) cout << "*";
 			partiallyMappedXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
 
-		cout << "crossover end" << endl;
+		cout << endl << "crossover end" << endl;
 
 		for (int i = 0; i < N; ++i)
 		{
@@ -273,6 +275,11 @@ void start(int** chromos, int** chromosBuffer)
 
 		vec.clear();
 		generation++;
+		if (generation % 10 == 0)
+		{
+			cout << "Press Enter to continue";
+			getc(stdin);
+		}
 	}
 }
 
