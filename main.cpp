@@ -12,7 +12,7 @@
 
 #define N 10000 // population size
 #define nWeek 4 // number of week
-#define nTeam 6 // number of team
+#define nTeam 10 // number of team
 #define nField 2 // number of field
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
@@ -275,7 +275,7 @@ void start(int** chromos, int** chromosBuffer)
 
 		vec.clear();
 		generation++;
-		if (generation % 10 == 0)
+		if (generation % 100 == 0)
 		{
 			cout << "Press Enter to continue";
 			getc(stdin);
@@ -293,6 +293,7 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 	if (a == b || a == c || a == d || b == c || b == d || c == d)
 	{
 		cout << "duplicated chromosome pointer" << endl;
+		getc(stdin);
 	}
 
 	unordered_map<int, int> ah, bh;
@@ -307,8 +308,8 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 
 	// generate the random segment
 	int head, tail;
-	head = myrand.uniformInt(0, nMatch);
-	tail = myrand.uniformInt(0, nMatch);
+	head = myrand.uniformInt(0, nMatch-1);
+	tail = myrand.uniformInt(0, nMatch-1);
 
 	// make sure that head > tail
 	if (head > tail)
@@ -364,7 +365,7 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		bh[d[i]] = i;
 	}
 
-	if (ah.size() != bh.size() || ah.size() != 15)
+	if (ah.size() != bh.size() || ah.size() != nMatch)
 	{
 		cout << "head: " << head << " tail: " << tail << endl;
 		for (int i = 0; i < nMatch; ++i)
@@ -387,6 +388,7 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 			cout << d[i] << " ";
 		}
 		cout << endl;
+		getc(stdin);
 	}
 
 }
