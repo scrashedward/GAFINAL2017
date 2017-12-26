@@ -26,6 +26,8 @@ void start(int**, int**);
 void orderXO(int* a, int* b, int* c, int* d);
 void partiallyMappedXO(int *a, int *b, int *c, int *d);
 void baselineRandom(int generation);
+void baselineGreedy(int generation);
+void baselineGreedyNFE(int nfe);
 
 MyRand myrand;
 
@@ -69,6 +71,8 @@ int main()
 		chromosBuffer[i] = new int[nMatch];
 		myrand.uniformArray(chromos[i], nMatch, 0, l-1);
 	}
+
+	baselineGreedy(100);
 
 	int good = 0;
 	for (int i = 0; i < N; ++i)
@@ -412,10 +416,6 @@ void baselineRandom(int generation)
 	int bestFitness = INT_MIN, f;
 	for (int i = 0; i < generation * N; ++i)
 	{
-		if (i % N == 0)
-		{
-			cout << "Generation " << i / N << " Best Fitness: " << bestFitness << endl;
-		}
 		myrand.uniformArray(chromos, nMatch, 0, l-1);
 		f = eval(chromos);
 		if (f > bestFitness)
@@ -426,4 +426,92 @@ void baselineRandom(int generation)
 	}
 
 	cout << "Best fitness using pure random baseline: " << bestFitness << endl;
+
+	delete [] chromos;
+	delete [] best;
+}
+
+void baselineGreedy(int generation)
+{
+	int * chromos = new int[nMatch];
+	int * buffer = new int[nMatch];
+	int best = INT_MIN;
+
+	for (int i = 0; i < generation; ++i)
+	{
+		if (i % (generation / 50) == 0) cout << "*";
+
+		myrand.uniformArray(chromos, nMatch, 0, l-1);
+
+		unordered_map<int, int> h;
+
+		for (int i = 0; i < nMatch; ++i)
+		{
+			h[chromos[i]] = i;
+		}
+
+		while (1) 
+		{
+			int jIdx, kIdx, temp;
+			int currentBestFitness = eval(chromos);
+			int f = 0;
+			for (int j = 0; j < nMatch; ++j)
+			{
+				for (int k = 0; k < l; ++k)
+				{
+					memcpy(buffer, chromos, sizeof(int)* nMatch);
+
+					if (buffer[j] == k) continue;
+					temp = buffer[j];
+					buffer[j] = k;
+					if (h.find(k) != h.end())
+					{
+						buffer[h[k]] = temp;
+					}
+
+					f = eval(buffer);
+					if (f > currentBestFitness)
+					{
+						jIdx = j;
+						kIdx = k;
+						currentBestFitness = f;
+					}
+				}
+			}
+
+			if (eval(chromos) == currentBestFitness)
+			{
+				if (currentBestFitness > best) 	best = currentBestFitness;
+				break;
+			}
+			else
+			{
+				temp = chromos[jIdx];
+				chromos[jIdx] = kIdx;
+				h.erase(temp);
+				if (h.find(kIdx) != h.end())
+				{
+					chromos[h[kIdx]] = temp;
+					h[temp] = h[kIdx];
+				}
+				h[kIdx] = jIdx;
+			}
+		}
+	}
+
+	cout << endl << "Best fitness using greedy baseline: " << best << endl;
+
+	delete [] chromos;
+	delete [] buffer;
+}
+
+void baselineGreedyNFE(int nfe)
+{
+	int count = nfe;
+	int * chromos = new int[nMatch];
+	int *best = new int[nMatch];
+	int f = 0, bestFitness = INT_MIN;
+
+	delete[] chromos;
+	delete[] best;
 }
