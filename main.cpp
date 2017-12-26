@@ -12,7 +12,7 @@
 
 #define N 10000 // population size
 #define nWeek 4 // number of week
-#define nTeam 5 // number of team
+#define nTeam 10 // number of team
 #define nField 2 // number of field
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
@@ -269,21 +269,21 @@ int start(int** chromos, int** chromosBuffer)
 		{
 			if (vec[i].second > -500)
 			{
-				sum += vec[i].second;
 				count++;
 			}
+			sum += vec[i].second;
 			chromos[i] = vec[i].first;
 			chromosBuffer[i] = vec[i + N].first;
 		}
 
 		cout << "Generation: " << generation << endl;
-		cout << "the average fitness of this generation is: " << float(float(sum) / float(count)) << endl;
+		cout << "the average fitness of this generation is: " << float(float(sum) / float(N)) << endl;
 		cout << "valid chromosome in this generation is: " << count << endl;
 		cout << "the best fitness value of this generation is: " << vec[0].second << endl;
 
 		generation++;
 
-		if ((float(vec[0].second) - float(float(sum) / float(count))) < 0.0001)
+		if ((float(vec[0].second) - float(float(sum) / float(N))) < 0.0001)
 		{
 			cout << "Converged at generation:" << generation << endl;
 			break;
@@ -440,7 +440,7 @@ void baselineGreedy(int generation)
 
 	for (int i = 0; i < generation; ++i)
 	{
-		if (i % (generation / 50) == 0) cout << "*";
+		if ((i % (generation / 50)) == 0) cout << "*";
 
 		myrand.uniformArray(chromos, nMatch, 0, l-1);
 
@@ -545,7 +545,7 @@ void baselineGreedyNFE(int nfe)
 
 					f = eval(buffer);
 					count--;
-					if ((count % (nfe / 50)) == 0) cout << "*";
+					if ((count % (nfe / 50)) == 0) cerr << "*";
 					if (f > currentBestFitness)
 					{
 						jIdx = j;
