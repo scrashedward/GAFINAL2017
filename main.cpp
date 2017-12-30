@@ -21,7 +21,7 @@ using namespace std;
 void getIndexFromMatchId(int*, int*, int);
 void exitWithError(int);
 int evaluate(int*);
-int eval(int*);
+int eval(int*, bool log = false);
 int start(int**, int**);
 void orderXO(int* a, int* b, int* c, int* d);
 void partiallyMappedXO(int *a, int *b, int *c, int *d);
@@ -36,7 +36,7 @@ int nMatch = nTeam * (nTeam - 1) / 2;
 vector<int> matches[nTeam];
 
 // date preference [Team][Date]
-int preferenceArray[10][10] =
+int preferenceArray[17][10] =
 {
 	{ -1, -2, 1, -1, 1, 0, 0, 0, 2, 0, },
 	{ -2, -1, 2, 0, -1, 0, 0, 1, 1, 0, },
@@ -48,6 +48,13 @@ int preferenceArray[10][10] =
 	{ 0, 0, -2, 0, 1, 1, -1, 0, -1, 2, },
 	{ 2, -1, 0, 0, 0, 1, -1, -2, 0, 1, },
 	{ -2, 0, 1, 0, 0, 2, -1, 1, 0, -1, },
+	{ 1, 0, -1, 0, -1, 2, -2, 0, 0, 1, },
+	{ -2, -1, 0, 1, 0, 0, 1, 0, -1, 2, },
+	{ 1, 0, -1, -1, 0, 0, 1, 2, -2, 0, },
+	{ 0, -1, 1, 0, 1, 0, 0, 2, -1, -2, },
+	{ 0, 0, 0, -1, 2, 1, -1, 0, -2, 1, },
+	{ 1, -1, -2, 0, 0, 0, 2, 1, 0, -1, },
+	{ 1, -1, -2, 0, 0, 0, 2, 1, 0, -1, },
 };
 int main()
 {
@@ -188,7 +195,7 @@ int evaluate(int* chromosome)
 	return fitness;
 }
 
-int eval(int* chromos)
+int eval(int* chromos, bool log)
 {
 	int days[nWeek * 5] = {0};
 	int fitness[nTeam] = { 0 };
@@ -222,8 +229,10 @@ int eval(int* chromos)
 	int f = 0;
 	for (int i = 0; i < nTeam; ++i)
 	{
+		if(log) cout << fitness[i] << " ";
 		f += fitness[i];
 	}
+	if (log) cout << endl;
 
 	return f;
 
@@ -248,7 +257,7 @@ int start(int** chromos, int** chromosBuffer)
 		cout << "start crossover" << endl;
 		for (int i = 0; i < N; i += 2)
 		{
-			if ((i % (N/50)) == 0) cout << "*";
+			if ((i % (N/50)) == 0) cerr << "*";
 			partiallyMappedXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
 
@@ -286,6 +295,7 @@ int start(int** chromos, int** chromosBuffer)
 		if ((float(vec[0].second) - float(float(sum) / float(N))) < 0.0001)
 		{
 			cout << "Converged at generation:" << generation << endl;
+			eval(vec[0].first, true);
 			break;
 		}
 
