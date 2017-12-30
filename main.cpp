@@ -88,8 +88,6 @@ int main()
 		if (eval(chromos[i]) > -900) good++;
 	}
 
-	cout << "good: " << good << endl;
-
 	int generation = start(chromos, chromosBuffer);
 
 	//baselineGreedy(100);
@@ -101,8 +99,6 @@ int main()
 		delete chromosBuffer[i];
 	}
 
-	cout << "Press Enter to end";
-	getc(stdin);
 	return 0;
 }
 
@@ -295,14 +291,11 @@ int start(int** chromos, int** chromosBuffer)
 	while (1)
 	{
 		myrand.uniformArray(order, N, 0, N-1);
-		cout << "start crossover" << endl;
 		for (int i = 0; i < N; i += 2)
 		{
-			if ((i % (N/50)) == 0) cout << "*";
+			// if ((i % (N/50)) == 0) cout << "*";
 			partiallyMappedXOT(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
-
-		cout << endl << "crossover end" << endl;
 
 		for (int i = 0; i < N; ++i)
 		{
@@ -326,10 +319,15 @@ int start(int** chromos, int** chromosBuffer)
 			chromosBuffer[i] = vec[i + N].first;
 		}
 
-		cout << "Generation: " << generation << endl;
-		cout << "the average fitness of this generation is: " << float(float(sum) / float(N)) << endl;
-		cout << "valid chromosome in this generation is: " << count << endl;
-		cout << "the best fitness value of this generation is: " << vec[0].second << endl;
+		//cout << "Generation: " << generation << endl;
+		//cout << "the average fitness of this generation is: " << float(float(sum) / float(N)) << endl;
+		//cout << "valid chromosome in this generation is: " << count << endl;
+		//cout << "the best fitness value of this generation is: " << vec[0].second << endl;
+
+		cout << generation << ", ";
+		cout << float(float(sum) / float(N)) << ", ";
+		cout << count << ", ";
+		cout << vec[0].second << endl;
 
 		generation++;
 
