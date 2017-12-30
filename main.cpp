@@ -16,6 +16,7 @@
 #define nField 2 // number of field
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
+#define unbalancedPenalty nTeam
 
 using namespace std;
 void getIndexFromMatchId(int*, int*, int);
@@ -228,14 +229,16 @@ int eval(int* chromos, bool log)
 	}
 
 	int f = 0;
+	int min = INT_MAX;
 	for (int i = 0; i < nTeam; ++i)
 	{
 		if(log) cout << fitness[i] << " ";
 		f += fitness[i];
+		if (fitness[i] < min) min = fitness[i];
 	}
 	if (log) cout << endl;
 
-	return f;
+	return f - unbalancedPenalty * min;
 
 }
 
