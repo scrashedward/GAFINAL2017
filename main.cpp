@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include "myrand.h"
 
-#define N 10000 // population size
+#define N 1000 // population size
 #define nWeek 4 // number of week
 #define nTeam 6 // number of team
 #define nField 2 // number of field
@@ -22,10 +22,11 @@ using namespace std;
 void getIndexFromMatchId(int*, int*, int);
 void exitWithError(int);
 int evaluate(int*);
-int eval(int*, bool log = false);
+int eval(int*, int* contribution = 0, bool log = false);
 int start(int**, int**);
 void orderXO(int* a, int* b, int* c, int* d);
 void partiallyMappedXO(int *a, int *b, int *c, int *d);
+void partiallyMappedXOT(int *a, int *b, int *c, int *d);
 void cycleXO(int *a, int *b, int *c, int *d);
 void baselineRandom(int generation);
 void baselineGreedy(int generation);
@@ -197,21 +198,57 @@ int evaluate(int* chromosome)
 	return fitness;
 }
 
-int eval(int* chromos, bool log)
+int eval(int* chromos, int* contribution, bool log)
 {
 	int days[nWeek * 5] = {0};
 	int fitness[nTeam] = { 0 };
+
+	if (contribution != 0)
+	{
+		memset(contribution, 0, sizeof(int) * nMatch);
+	}
 
 	for (int i = 0; i < nTeam; i++)
 	{
 		for (int j = 0; j < nTeam - 1; j++)
 		{
 			fitness[i] += preferenceArray[i][(chromos[matches[i][j]] % 20) / nField];
+			if (contribution != 0)
+			{
+				contribution[matches[i][j]] += preferenceArray[i][(chromos[matches[i][j]] % 20) / nField];
+			}
 			if (days[chromos[matches[i][j]] / (2 * nField)]) {
 				fitness[i] -= 1000;
-				//cout << "same day collision" << endl;
+				if (contribution != 0)
+				{
+					contribution[matches[i][j]] -= 1000;
+				}
 			}
 			else days[chromos[matches[i][j]] / 2 / nField] = 1;
+		}
+
+		if (contribution != 0)
+		{
+			for (int j = 0; j < nTeam - 1; j++)
+			{
+				int day = chromos[matches[i][j]] / 2 / nField;
+				if (((day - 2) / 5) == (day / 5) && days[day] && days[day - 2])
+				{
+					contribution[matches[i][j]] -= 2;
+				}
+				if (((day - 1) / 5) == (day / 5) && days[day] && days[day - 1])
+				{
+					contribution[matches[i][j]] -= 1;
+				}
+				if (((day + 1) / 5) == (day / 5) && days[day] && days[day + 1])
+				{
+					contribution[matches[i][j]] -= 1;
+				}
+				if (((day + 2) / 5) == (day / 5) && days[day] && days[day + 2])
+				{
+					contribution[matches[i][j]] -= 2;
+				}
+			}
 		}
 		
 		for (int j = 0; j < nWeek; ++j)
@@ -238,7 +275,7 @@ int eval(int* chromos, bool log)
 	}
 	if (log) cout << endl;
 
-	return f - unbalancedPenalty * min;
+	return f + unbalancedPenalty * min;
 
 }
 
@@ -262,7 +299,7 @@ int start(int** chromos, int** chromosBuffer)
 		for (int i = 0; i < N; i += 2)
 		{
 			if ((i % (N/50)) == 0) cout << "*";
-			orderXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
+			partiallyMappedXOT(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
 
 		cout << endl << "crossover end" << endl;
@@ -299,7 +336,7 @@ int start(int** chromos, int** chromosBuffer)
 		if ((float(vec[0].second) - float(float(sum) / float(N))) < 0.0001)
 		{
 			cout << "Converged at generation:" << generation << endl;
-			eval(vec[0].first, true);
+			eval(vec[0].first, 0, true);
 			break;
 		}
 
@@ -443,33 +480,111 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		ah[c[i]] = i;
 		bh[d[i]] = i;
 	}
+}
 
-	if (ah.size() != bh.size() || ah.size() != nMatch)
+void partiallyMappedXOT(int *a, int *b, int *c, int *d)
+{
+	if (a == b || a == c || a == d || b == c || b == d || c == d)
 	{
-		cout << "head: " << head << " tail: " << tail << endl;
-		for (int i = 0; i < nMatch; ++i)
-		{
-			cout << a[i] << " ";
-		}
-		cout << endl;
-		for (int i = 0; i < nMatch; ++i)
-		{
-			cout << b[i] << " ";
-		}
-		cout << endl;
-		for (int i = 0; i < nMatch; ++i)
-		{
-			cout << c[i] << " ";
-		}
-		cout << endl;
-		for (int i = 0; i < nMatch; ++i)
-		{
-			cout << d[i] << " ";
-		}
-		cout << endl;
+		cout << "duplicated chromosome pointer" << endl;
 		getc(stdin);
 	}
 
+	unordered_set<int> chromosToChange;
+	unordered_map<int, int> ah, bh;
+	int *contributionA = new int[nMatch];
+	int *contributionB = new int[nMatch];
+	float *pc = new float[nMatch];
+	memset(pc, 0, sizeof(float) * nMatch);
+
+	eval(a, contributionA);
+	eval(b, contributionB);
+
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[a[i]] = i;
+		bh[b[i]] = i;
+		if (contributionA[i] < -500)
+		{
+			pc[i] += 0.25;
+		}
+		else if (contributionA[i] < 0)
+		{
+			pc[i] += 0.15;
+		}
+		else pc[i] += 0.1;
+
+		if (contributionB[i] < -500)
+		{
+			pc[i] += 0.25;
+		}
+		else if (contributionB[i] < 0)
+		{
+			pc[i] += 0.15;
+		}
+		else pc[i] += 0.1;
+	}
+
+	memset(c, -1, sizeof(int)* nMatch);
+	memset(d, -1, sizeof(int)* nMatch);
+
+	for (int i = 0; i < nMatch; ++i)
+	{
+		if (myrand.flip(pc[i]))
+		{
+			chromosToChange.insert(i);
+		}
+	}
+
+	for (int i : chromosToChange)
+	{
+		c[i] = a[i];
+		if (bh.find(a[i]) != bh.end() && chromosToChange.find(bh[a[i]]) == chromosToChange.end())
+		{
+			int s = b[i];
+			while (ah.find(s) != ah.end() && chromosToChange.find(ah[s]) != chromosToChange.end())
+			{
+				s = b[ah[s]];
+			}
+			c[bh[a[i]]] = s;
+		}
+
+		d[i] = b[i];
+		if (ah.find(b[i]) != ah.end() && chromosToChange.find(ah[b[i]]) == chromosToChange.end())
+		{
+			int s = a[i];
+			while (bh.find(s) != bh.end() && chromosToChange.find(bh[s]) != chromosToChange.end())
+			{
+				s = a[bh[s]];
+			}
+			d[ah[b[i]]] = s;
+		}
+	}
+
+	for (int i = 0; i < nMatch; ++i)
+	{
+		if (c[i] == -1)
+		{
+			c[i] = b[i];
+		}
+
+		if (d[i] == -1)
+		{
+			d[i] = a[i];
+		}
+	}
+
+	ah.clear();
+	bh.clear();
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[c[i]] = i;
+		bh[d[i]] = i;
+	}
+
+	delete[] contributionA;
+	delete[] contributionB;
+	delete[] pc;
 }
 
 void cycleXO(int *a, int *b, int *c, int *d)
@@ -631,9 +746,11 @@ void baselineGreedyNFE(int nfe)
 	int * buffer = new int[nMatch];
 	int best = INT_MIN;
 	int count = nfe;
+	int loops = 0;
 
 	while (1)
 	{
+		loops++;
 		myrand.uniformArray(chromos, nMatch, 0, l - 1);
 
 		unordered_map<int, int> h;
@@ -696,6 +813,7 @@ void baselineGreedyNFE(int nfe)
 	}
 
 	cout << endl << "Best fitness using greedy NFE baseline: " << best << endl;
+	cout << "Greedy NFE tested " << loops << " chromosomes" << endl;
 
 	delete[] chromos;
 	delete[] buffer;
