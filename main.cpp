@@ -12,7 +12,7 @@
 
 #define N 10000 // population size
 #define nWeek 4 // number of week
-#define nTeam 10 // number of team
+#define nTeam 6 // number of team
 #define nField 2 // number of field
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
@@ -25,6 +25,7 @@ int eval(int*);
 int start(int**, int**);
 void orderXO(int* a, int* b, int* c, int* d);
 void partiallyMappedXO(int *a, int *b, int *c, int *d);
+void cycleXO(int *a, int *b, int *c, int *d);
 void baselineRandom(int generation);
 void baselineGreedy(int generation);
 void baselineGreedyNFE(int nfe);
@@ -249,7 +250,7 @@ int start(int** chromos, int** chromosBuffer)
 		for (int i = 0; i < N; i += 2)
 		{
 			if ((i % (N/50)) == 0) cout << "*";
-			partiallyMappedXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
+			orderXO(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
 		}
 
 		cout << endl << "crossover end" << endl;
@@ -301,7 +302,56 @@ int start(int** chromos, int** chromosBuffer)
 
 void orderXO(int* a, int* b, int* c, int* d)
 {
+	unordered_map<int, int> ah, bh, ch, dh;
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[a[i]] = i;
+		bh[b[i]] = i;
+	}
 
+	memcpy(c, a, sizeof(int)* nMatch);
+	memcpy(d, b, sizeof(int)* nMatch);
+
+	// generate the random segment
+	int head, tail;
+	head = myrand.uniformInt(0, nMatch - 1);
+	tail = myrand.uniformInt(0, nMatch - 1);
+
+	// make sure that head > tail
+	if (head > tail)
+	{
+		head = head ^ tail;
+		tail = head ^ tail;
+		head = head ^ tail;
+	}
+
+	int idx;
+	int idxa = (tail + 1) % nMatch;
+	int	idxb = idxa;
+
+	for (int i = 0; i < nMatch - (tail - head + 1); ++i)
+	{
+		idx = (tail + i + 1) % nMatch;
+		while (ah.find(b[idxb]) != ah.end() && ah[b[idxb]] >= head && ah[b[idxb]] <= tail)
+		{
+			idxb++;
+			idxb = idxb % nMatch;
+		}
+		c[idx] = b[idxb];
+
+		while (bh.find(a[idxa]) != bh.end() && bh[a[idxa]] >= head && bh[a[idxa]] <= tail)
+		{
+			idxa++;
+			idxa = idxa % nMatch;
+		}
+		d[idx] = a[idxa];
+
+		idxa++;
+		idxa = idxa % nMatch;
+		idxb++;
+		idxb = idxb % nMatch;
+
+	}
 }
 
 void partiallyMappedXO(int *a, int *b, int *c, int *d)
@@ -405,6 +455,62 @@ void partiallyMappedXO(int *a, int *b, int *c, int *d)
 		}
 		cout << endl;
 		getc(stdin);
+	}
+
+}
+
+void cycleXO(int *a, int *b, int *c, int *d)
+{
+	if (a == b || a == c || a == d || b == c || b == d || c == d)
+	{
+		cout << "duplicated chromosome pointer" << endl;
+		getc(stdin);
+	}
+
+	unordered_map<int, int> ah, bh;
+	for (int i = 0; i < nMatch; ++i)
+	{
+		ah[a[i]] = i;
+		bh[b[i]] = i;
+	}
+
+	memcpy(c, a, sizeof(int) * nMatch);
+	memcpy(d, b, sizeof(int) * nMatch);
+
+	bool backward = true;
+	int pivot = myrand.uniformInt(0, nMatch - 1);
+	int idx = pivot;
+
+	while (1)
+	{
+		c[idx] = b[idx];
+		d[idx] = a[idx];
+
+		if (ah.find(b[idx]) == ah.end() || ah[b[idx]] == pivot)
+		{
+			if (ah.find(b[idx]) != ah.end())
+			{
+				backward = false;
+			}
+			break;
+		}
+
+		else idx = ah[b[idx]];
+	}
+
+	idx = pivot;
+	while (backward)
+	{
+		if (bh.find(a[idx]) == bh.end())
+		{
+			break;
+		}
+
+		idx = bh[a[idx]];
+
+		c[idx] = b[idx];
+		d[idx] = a[idx];
+
 	}
 
 }
@@ -576,7 +682,7 @@ void baselineGreedyNFE(int nfe)
 		if (count < 0) break;
 	}
 
-	cout << endl << "Best fitness using greedy baseline: " << best << endl;
+	cout << endl << "Best fitness using greedy NFE baseline: " << best << endl;
 
 	delete[] chromos;
 	delete[] buffer;
