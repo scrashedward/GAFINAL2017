@@ -17,6 +17,7 @@
 #define nTimeSlot nWeek*10 // number of timeslot
 #define l nTimeSlot*nField
 #define unbalancedPenalty nTeam
+#define gpc 0.7
 
 using namespace std;
 void getIndexFromMatchId(int*, int*, int);
@@ -31,6 +32,7 @@ void cycleXO(int *a, int *b, int *c, int *d);
 void baselineRandom(int generation);
 void baselineGreedy(int generation);
 void baselineGreedyNFE(int nfe);
+void greedyInitialization(int ** chromos);
 
 MyRand myrand;
 
@@ -81,6 +83,8 @@ int main()
 		chromosBuffer[i] = new int[nMatch];
 		myrand.uniformArray(chromos[i], nMatch, 0, l-1);
 	}
+
+	//greedyInitialization(chromos);
 
 	int good = 0;
 	for (int i = 0; i < N; ++i)
@@ -257,6 +261,10 @@ int eval(int* chromos, int* contribution, bool log)
 				if (days[j * 5 + k - 2] && days[j * 5 + k - 1] && days[j * 5 + k]) fitness[i] -= 1000;
 				//cout << "b2b2b" << endl;
 			}
+			if (!days[j * 5] && !days[j * 5 + 1] && !days[j * 5 + 2] && !days[j * 5 + 3] && !days[j * 5 + 4])
+			{
+				fitness[i] -= 3;
+			}
 		}
 		memset(days, 0, sizeof(int) * nWeek * 5);
 	}
@@ -294,13 +302,22 @@ int start(int** chromos, int** chromosBuffer)
 		for (int i = 0; i < N; i += 2)
 		{
 			// if ((i % (N/50)) == 0) cout << "*";
-			partiallyMappedXOT(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
+			if (myrand.flip(gpc)) partiallyMappedXOT(chromos[order[i]], chromos[order[i+1]], chromosBuffer[i], chromosBuffer[i+1]);
+			else
+			{
+				chromosBuffer[i][0] = -1;
+				chromosBuffer[i+1][0] = -1;
+			}
 		}
 
 		for (int i = 0; i < N; ++i)
 		{
 			vec.push_back(pair<int*, int>(chromos[i], eval(chromos[i])));
-			vec.push_back(pair<int*, int>(chromosBuffer[i], eval(chromosBuffer[i])));
+			if (chromosBuffer[i][0] != -1) vec.push_back(pair<int*, int>(chromosBuffer[i], eval(chromosBuffer[i])));
+			else
+			{
+				vec.push_back(pair<int*, int>(chromosBuffer[i], INT_MIN));
+			}
 		}
 
 		sort(vec.begin(), vec.end(), sort_pred());
@@ -339,11 +356,6 @@ int start(int** chromos, int** chromosBuffer)
 		}
 
 		vec.clear();
-		//if (generation % 100 == 0)
-		//{
-		//	cout << "Press Enter to continue";
-		//	getc(stdin);
-		//}
 	}
 	return generation;
 }
@@ -814,5 +826,64 @@ void baselineGreedyNFE(int nfe)
 	cout << "Greedy NFE tested " << loops << " chromosomes" << endl;
 
 	delete[] chromos;
+	delete[] buffer;
+}
+
+void greedyInitialization(int ** chromos)
+{
+	int *buffer = new int[nMatch];
+
+	for (int i = 0; i < N; ++i)
+	{
+		if ((i % (N / 50)) == 0) cout << "*";
+		myrand.uniformArray(chromos[i], nMatch, 0, l-1);
+
+		unordered_map<int, int> h;
+
+		for (int j = 0; j < nMatch; ++j)
+		{
+			h[chromos[i][j]] = j;
+		}
+
+		int currentBestFitness = eval(chromos[i]);
+		while (1)
+		{
+			int jIdx, kIdx, temp;
+			int f = 0;
+			for (int j = 0; j < nMatch; ++j)
+			{
+				for (int k = j+1; k < nMatch; ++k)
+				{
+					memcpy(buffer, chromos[i], sizeof(int)* nMatch);
+
+					buffer[j] ^= buffer[k];
+					buffer[k] ^= buffer[j];
+					buffer[j] ^= buffer[k];
+
+					f = eval(buffer);
+					if (f > currentBestFitness)
+					{
+						jIdx = j;
+						kIdx = k;
+						currentBestFitness = f;
+					}
+				}
+			}
+
+			if (eval(chromos[i]) == currentBestFitness)
+			{
+				break;
+			}
+			else
+			{
+				chromos[i][jIdx] ^= chromos[i][kIdx];
+				chromos[i][kIdx] ^= chromos[i][jIdx];
+				chromos[i][jIdx] ^= chromos[i][kIdx];
+			}
+		}
+	}
+
+	cout << endl;
+
 	delete[] buffer;
 }
