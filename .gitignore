@@ -4,3 +4,4 @@
 *.db
 *.filters
 *.opendb
+*.ipch
